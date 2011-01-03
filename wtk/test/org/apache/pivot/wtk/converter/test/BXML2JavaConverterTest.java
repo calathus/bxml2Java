@@ -95,7 +95,7 @@ public class BXML2JavaConverterTest {
         }
     }
 
-//    @Test
+    @Test
     public void allTutorialBXMLTest() {
         try {
             final BXML2JavaConverter b2j = new BXML2JavaConverter();

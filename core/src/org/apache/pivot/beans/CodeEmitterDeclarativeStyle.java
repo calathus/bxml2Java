@@ -142,6 +142,9 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
         pr("static "+clsName+" create() throws Exception {");
         inc();
         pr("return new "+clsName+"() {{");
+        inc();
+        pr("final Map<String, Object> namespace = new HashMap<String, Object>();");
+        dec();
     }
 
     public void code_new(String element_type, String name, Object parent_value, Object element_value) {
@@ -156,7 +159,20 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
             code_new(getterName+"().add", type);
             return;
         } else if (element_type.equals("INCLUDE")) {
-            code_new("setContent", type);
+        	boolean useSetContent = false;
+        	System.out.println(">>>>>> name: "+name+", parent_value: "+parent_value);
+        	if (parent_value != null && element_value != null) {
+	        	for (Method m: parent_value.getClass().getMethods()) {
+	        		if (m.getName().equals("setContent")) {
+	        			Class<?>[] parameters = m.getParameterTypes();
+	        			if (parameters.length == 1 && parameters[0].isAssignableFrom(element_value.getClass())) {
+	        				useSetContent = true;
+	        				break;
+	        			}
+	        		} 
+	        	}
+        	}
+            code_new((useSetContent)?"setContent":"add", type);
             return;
         }
         Class<?> parentType = parent_value.getClass();
@@ -186,9 +202,7 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
     private void code_new(String opr, final Class<?> type) {
         pr(opr, "(new "+ctx.getShortClassName(type)+"() {{");
     }
-    public void code_decl_namespace() {
-    	pr("final Map<String, Object> namespace = new HashMap<String, Object>();");
-    }
+
     public void code_block_end(String name, String elementType, boolean endOfInclude) {
     	if (endOfInclude) {
     		inc();

@@ -803,24 +803,32 @@ public class BXMLSerializer implements Serializer<Object>, Resolvable {
 
                         // [nn]
                         if (isEmitMode()) {
-                            Element element0 = element;
-                            if (element0 == null && parentBXMLSerializer != null) {
-                                element0 = parentBXMLSerializer.element;
-                            }
+                        	{
+                        		Element element0 = element;
+                        		if (element0 == null && parentBXMLSerializer != null && parentBXMLSerializer.element != null) {
+                        			element0 = parentBXMLSerializer.element.parent;
+                        		}
 
-                            if (element0 == null) {
-                                codeEmitter.code_new_root(type);
-                            } else if (element0 != null && element0.type == Element.Type.DEFINE) {
-                                codeEmitter.code_declare(type, value);
-                            } else {
-                                codeEmitter.code_new(""+element0.type, element0.name, element0.value, value);
-                            }
-                            if (element == null && parentBXMLSerializer != null && element0.type == Element.Type.INCLUDE) {
-                                System.out.println(">>>>>> element0.name: "+element0.name+", element0.id: "+element0.id);
-                                //inc();
-                                codeEmitter.code_node_id(element0.id);
-                                //dec();
-                            }
+                        		if (element0 == null) {
+                        			codeEmitter.code_new_root(type);
+                        		} else if (element0 != null && element0.type == Element.Type.DEFINE) {
+                        			codeEmitter.code_declare(type, value);
+                        		} else {
+                        			codeEmitter.code_new(""+element0.type, element0.name, element0.value, value);
+                        		}
+                        	}
+                        	{
+                        		Element element0 = element;
+                        		if (element0 == null && parentBXMLSerializer != null) {
+                        			element0 = parentBXMLSerializer.element;
+                        		}
+                        		if (element0 != null && element0.type == Element.Type.INCLUDE) {
+                                	System.out.println(">>>>>> element0.name: "+element0.name+", element0.id: "+element0.id);
+                                	//inc();
+                                	codeEmitter.code_node_id(element0.id);
+                                	//dec();
+                        		}
+                        	}
                         }
                     } catch (ClassNotFoundException exception) {
                         throw new SerializationException(exception);
@@ -880,9 +888,11 @@ public class BXMLSerializer implements Serializer<Object>, Resolvable {
             for (final Attribute attr : element.attributes) {
                 codeEmitter.code_set_attr(attr.element.value, attr.name, attr.propertyClass, attr.value);
             }
+            /*
             if (element.parent == null) {
             	codeEmitter.code_decl_namespace();
             }
+            */
             codeEmitter.dec();
         }
 

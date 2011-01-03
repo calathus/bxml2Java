@@ -20,8 +20,6 @@ public interface ICodeEmitter {
 
     void code_new(String element_type, String name, Object parent_value, Object element_value);
     
-    void code_decl_namespace();
-    
     void code_set_attr(Object obj, String name, Class<?> propertyClass, Object value);
 
     void code_static_set_attr(Method setterMethod, Object object, Object value);
