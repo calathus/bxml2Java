@@ -500,11 +500,12 @@ public class BXMLSerializer implements Serializer<Object>, Resolvable {
         }
 
         xmlStreamReader = null;
-
+        //System.out.println(">> namespaceBindingAttributes: "+namespaceBindingAttributes);
         // Apply the namespace bindings
         for (Attribute attribute : namespaceBindingAttributes) {
             Element element = attribute.element;
             String sourcePath = (String)attribute.value;
+            //System.out.println(">> element.name: "+element.name);
 
             NamespaceBinding.BindMapping bindMapping;
             int i = sourcePath.indexOf(BIND_MAPPING_DELIMITER);
@@ -528,6 +529,7 @@ public class BXMLSerializer implements Serializer<Object>, Resolvable {
                     String targetPath = element.id + "." + attribute.name;
                     NamespaceBinding namespaceBinding = new NamespaceBinding(namespace, sourcePath, targetPath,
                         bindMapping);
+                    //System.out.println(">> INCLUDE: namespace: "+namespace+", sourcePath: "+sourcePath+", targetPath: "+targetPath+", bindMapping: "+bindMapping);
                     namespaceBinding.bind();
 
                     break;
@@ -543,6 +545,7 @@ public class BXMLSerializer implements Serializer<Object>, Resolvable {
                     String targetPath = element.parent.id + "." + element.name + "." + attribute.name;
                     NamespaceBinding namespaceBinding = new NamespaceBinding(namespace, sourcePath, targetPath,
                         bindMapping);
+                    //System.out.println(">> READ_ONLY_PROPERTY: namespace: "+namespace+", sourcePath: "+sourcePath+", targetPath: "+targetPath+", bindMapping: "+bindMapping);
                     namespaceBinding.bind();
 
                     break;
@@ -693,8 +696,6 @@ public class BXMLSerializer implements Serializer<Object>, Resolvable {
                         try {
                             Method addMethod = sequence.getClass().getMethod("add", String.class);
                             addMethod.invoke(sequence, text);
-                            // [nn]
-                            ////System.out.println(">> [processCharacters] "+text);
                         } catch (NoSuchMethodException exception) {
                             throw new SerializationException("Text content cannot be added to "
                                 + sequence.getClass().getName() + ".", exception);
@@ -872,10 +873,15 @@ public class BXMLSerializer implements Serializer<Object>, Resolvable {
         processAttributes();
 
         // [nn]
+        // it is better to generate attribute info before elements as following code since othewise attribte code would be far from elemen decalration, which is not easy to read.
+        // but current code, some case, require to execute some attribute setting after elements declaration. this may be a bug of Pivot..
         if (isEmitMode()) {
             codeEmitter.inc();
             for (final Attribute attr : element.attributes) {
                 codeEmitter.code_set_attr(attr.element.value, attr.name, attr.propertyClass, attr.value);
+            }
+            if (element.parent == null) {
+            	codeEmitter.code_decl_namespace();
             }
             codeEmitter.dec();
         }
@@ -1279,12 +1285,26 @@ public class BXMLSerializer implements Serializer<Object>, Resolvable {
                         }
                     }
                 }
-                if (isEmitMode() && element != null) {
-                    if (    !(element.type == Element.Type.INCLUDE)
-                            && !(element.parent == null && parentBXMLSerializer == null)
+                
+                // [nn]
+                if (isEmitMode()) {
+                	// [nn] although this may fix some code generation issue, but attribute info should be generated just after element declaration.
+                	/*
+                	codeEmitter.inc();
+                    for (final Attribute attr: element.attributes) {
+                        codeEmitter.code_set_attr(attr.element.value, attr.name, attr.propertyClass, attr.value);
+                    }
+                    codeEmitter.dec();
+                    */
+                    
+                    if (element != null && !(element.type == Element.Type.INCLUDE)) {
+                    	boolean endOfInclude = (element.parent == null && parentBXMLSerializer != null);
+                    	if (
+                    		!(element.parent == null && parentBXMLSerializer == null) // top level
                             //&& !(element.parent != null && element.parent.type == Element.Type.DEFINE)
-                    ) {
-                        codeEmitter.code_block_end(element.name, ""+element.type);
+                    	) {
+                    		codeEmitter.code_block_end(element.name, ""+element.type, endOfInclude);
+                    	}
                     }
                 }
 
@@ -1377,8 +1397,6 @@ public class BXMLSerializer implements Serializer<Object>, Resolvable {
 
                 try {
                     addMethod.invoke(listenerList, listener);
-                    // [nn]
-                    ////System.out.println(">> [processEndElement: LISTENER_LIST_PROPERTY] addMethod: listener: "+listener);
                 } catch (IllegalAccessException exception) {
                     throw new SerializationException(exception);
                 } catch (InvocationTargetException exception) {

@@ -76,7 +76,7 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
             pr0("    public void startup(Display display, Map<String, String> properties) throws Exception {");
             pr0("        //BXMLSerializer bxmlSerializer = new BXMLSerializer();");
             pr0("        //window = (Window)bxmlSerializer.readObject(getClass().getResource("+bxmlFileNameExp+"));");
-            pr0("        final Object obj = createROOT();");
+            pr0("        final Object obj = create();");
             pr0("        if (obj instanceof Window) {;");
             pr0("            window = (Window)obj;");
             pr0("        } else if (obj instanceof Component) {");
@@ -110,21 +110,6 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
             pr0("        DesktopApplicationContext.main("+targetClassName+".class, args);");
             pr0("    }");
             pr0();
-            pr0("    public Object createROOT() {");
-            pr0("        ROOT root = new ROOT();");
-            pr0("        Map<String, Object> namespace = new HashMap<String, Object>();");
-            pr0("        URL location = null;");
-            pr0("        Resources resources = null;");
-            pr0();
-            pr0("        // Bind the root to the namespace");
-            pr0("        if (root instanceof Bindable) {");
-            pr0("            Bindable bindable = (Bindable) root;");
-            pr0("            bindable.initialize(namespace, location, resources);");
-            pr0("        }");
-            pr0("        return root;");
-            pr0("    }");
-
-            pr0();
         }
         call_depth++;
     }
@@ -132,11 +117,9 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
     public void code_end() {
         call_depth--;
         if (call_depth == 0) {
-            pr0("        } catch (Exception e) {");
-            pr0("            e.printStackTrace();");
-            pr0("            throw new RuntimeException(e);");
-            pr0("        }");
-            pr0("    }}");
+            pr0("            CodeEmitterRuntime.initialize(this, namespace);");
+            pr0("        }};");
+            pr0("    }");
             pr0("}");
             wr.flush();
         }
@@ -155,10 +138,10 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
 
     public void code_new_root(final Class<?> type) {
         dec();dec();
-        pr("static class ROOT extends "+ctx.getShortClassName(type)+" {{");
+        final String clsName = ctx.getShortClassName(type);
+        pr("static "+clsName+" create() throws Exception {");
         inc();
-        pr("try {");
-        //pr("final Object root = ", "(new "+ctx.getShortClassName(type)+"() {{");
+        pr("return new "+clsName+"() {{");
     }
 
     public void code_new(String element_type, String name, Object parent_value, Object element_value) {
@@ -173,8 +156,7 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
             code_new(getterName+"().add", type);
             return;
         } else if (element_type.equals("INCLUDE")) {
-            //String getterName = ctx.getGetterName(name);
-            code_new("add", type); // TODO...
+            code_new("setContent", type);
             return;
         }
         Class<?> parentType = parent_value.getClass();
@@ -204,9 +186,16 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
     private void code_new(String opr, final Class<?> type) {
         pr(opr, "(new "+ctx.getShortClassName(type)+"() {{");
     }
-
-    public void code_block_end(String name, String elementType) {
-        pr("}}); // "+elementType+", name: "+name);
+    public void code_decl_namespace() {
+    	pr("final Map<String, Object> namespace = new HashMap<String, Object>();");
+    }
+    public void code_block_end(String name, String elementType, boolean endOfInclude) {
+    	if (endOfInclude) {
+    		inc();
+    		pr("CodeEmitterRuntime.initialize(this, namespace);");
+    		dec();
+    	}
+    	pr("}}); // "+elementType+", name: "+name);
     }
 
     public void code_comment(String name, String elementType) {
@@ -252,7 +241,6 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
     }
 
     private void code_bean_setter0(final Object obj, String setterName, Class<?> propertyClass, Object value) {
-        //String var = ctx.(propertyClass, value);
         String vexp = ctx.getValueExp(propertyClass, value);
         if (vexp.endsWith("*")) {
             vexp = vexp.substring(0, vexp.length()-1);
@@ -276,24 +264,19 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
     }
     public void code_node_id(String name) {
         inc();
-        pr("CodeEmitterRuntime.register(\""+name+"\", this);");
+        pr("namespace.put(\""+name+"\", this);");
         dec();
     }
-    //public void code_get_node(String name) {
-    //    pr("CodeEmitterRuntime.getNodeValue(\""+name+"\");");
-    //}
+
     public void register_reference(String name, Object value) {
         ctx.register_reference(name, value);
     }
 
     public void code_bind(final Field field, final Object object, final Object value) {
-        //final String var = ctx.getVarExp(object);
-        //final String vexp0 = ctx.getVarExp(object);
-        final String vexp = ctx.getValueExp(value);
         final String fieldName = field.getName();
         inc();
         inc();
-        pr("CodeEmitterRuntime.bind(ROOT.this, \""+fieldName+"\");");
+        pr("CodeEmitterRuntime.bind(this, namespace, \""+fieldName+"\");");
         dec();
         dec();
     }
@@ -353,119 +336,5 @@ public class CodeEmitterDeclarativeStyle implements ICodeEmitter {
     public void flush() {
         wr.flush();
     }
-
-    /*
-        public void code_set_element(final Object obj, final String name, final Object value) {
-            if (obj == null) {
-                throw new RuntimeException("[code_set_attr] obj must not be null: name: "+name+", value: "+value);
-            }
-
-            if (obj instanceof Dictionary<?, ?>) {
-                final Dictionary<?, ?> dictionary = (Dictionary<?, ?>)obj;
-                if (dictionary instanceof BeanAdapter) {
-                    final String setterName = ctx.getSetterName(name);
-                    code_bean_setter0(((BeanAdapter)dictionary).getBean(), setterName, null, value);
-                    codes.set(setterName);
-                } else {
-                    code_put_item(dictionary, name, null, value);
-                    codes.put(name);
-                }
-            } else {
-                final String setterName = ctx.getSetterName(name);
-                code_set_prop(obj, setterName, value);
-                codes.set(setterName);
-            }
-            codes.pr("}});", indent_level);
-        }
-
-        public void code_add_element(final Sequence<?> sequence, final Object value) {
-            codes.pr("}});", indent_level);
-            codes.add();
-        }
-    */
-
-    /*
-
-    public void code_new_set(String name, Object value) {
-        code_new(ctx.getSetterName(name), value.getClass());
-    }
-    // TODO, get sequence getter!
-    public boolean code_new_add_default(String name, Object parent_value, Object value) {
-
-        final Class<?> type = value.getClass();
-        //if (parent_value instanceof Sequence<?>) {
-            Class<?> parentType = parent_value.getClass();
-            DefaultProperty defaultProperty = parentType.getAnnotation(DefaultProperty.class);
-            String defaultPropertyName = defaultProperty.value();
-            BeanAdapter beanAdapter = new BeanAdapter(parent_value);
-            Object defaultPropertyValue = beanAdapter.get(defaultPropertyName);
-
-
-
-            if (defaultPropertyValue instanceof Sequence<?>) {
-                String getterName = ctx.getGetterName(defaultPropertyName);
-                code_new(getterName+"().add", type);
-            } else {
-                String setterName = ctx.getSetterName(defaultPropertyName);
-                code_new(setterName, type);
-            }
-            //code_new(opr+"().add", type);
-            return true;
-        //}
-        //return false;
-    }
-    public void code_new_add(final Class<?> type) {
-        code_new("add", type);
-    }
-    private void code_new(String opr, final Class<?> type) {
-        pr(opr, "(new "+ctx.getShortClassName(type)+"() {{");
-    }
-    */
-    /*
-    // use pivot convention..
-    private String findGetSequnceMethodName(Object obj, final Class<?> type) {
-        String clasName = type.getName();
-        if (clasName.startsWith("org.apache.pivot.") && clasName.contains("$")) {
-            return "get"+type.getSimpleName()+"s";
-        }
-        return null;
-    }
-    */
-    /*
-    public void code_new(final Object parent_value, final Object element_value) {
-        final Class<?> type = element_value.getClass();
-        String opr = getMethod(parent_value, element_value);
-        pr(opr, "(new "+ctx.getShortClassName(type)+"() {{");
-    }
-
-    private String getMethod(Object parent_value, Object element_value) {
-        // If the parent element has a default property, use it; otherwise, if the
-        // parent is a sequence, add the element to it
-        Class<?> parentType = parent_value.getClass();
-        DefaultProperty defaultProperty = parentType.getAnnotation(DefaultProperty.class);
-
-        if (defaultProperty == null) {
-            if (parent_value instanceof Sequence<?>) {
-                //Sequence<Object> sequence = (Sequence<Object>)parent_value;
-                //sequence.add(element_value);
-                return "add";
-            } else {
-                throw new RuntimeException(parent_value.getClass() + " is not a sequence.");
-            }
-        } else {
-            String defaultPropertyName = defaultProperty.value();
-            BeanAdapter beanAdapter = new BeanAdapter(parent_value);
-            Object defaultPropertyValue = beanAdapter.get(defaultPropertyName);
-            if (defaultPropertyValue instanceof Sequence<?>) {
-                String getterName = ctx.getGetterName(defaultPropertyName);
-                return getterName+"().add";
-            } else {
-                String setterName = ctx.getSetterName(defaultPropertyName);
-                return setterName;
-            }
-        }
-    }
-    */
-
 
 }

@@ -153,7 +153,7 @@ public class CodeEmitterContext {
                 String name = get_reference_name(value);
                 if (name != null) {
                     //sv = "("+getShortClassName(value.getClass())+")CodeEmitterRuntime.getValue(ROOT.this, \""+name+"\")";
-                    sv = "("+getShortClassName(value.getClass())+")CodeEmitterRuntime.getNodeValue(\""+name+"\")";
+                    sv = "("+getShortClassName(value.getClass())+")namespace.get(\""+name+"\")";
                 } else {
                     // TODO...
                     sv = "" + value;

@@ -95,7 +95,7 @@ public class BXML2JavaConverterTest {
         }
     }
 
-    @Test
+//    @Test
     public void allTutorialBXMLTest() {
         try {
             final BXML2JavaConverter b2j = new BXML2JavaConverter();
@@ -117,13 +117,13 @@ public class BXML2JavaConverterTest {
         translate(b2j, args[0], args[1], args[2]);
     }
 
-//    @Test
+    @Test
     public void generateTest() {
         try {
             final BXML2JavaConverter b2j = new BXML2JavaConverter();
 
             final String argss[][] = {
-                    { "stock_tracker_window.bxml", "org.apache.pivot.tutorials.stocktracker", "TestCodeGenerator" },
+                    { "stock_tracker_window.bxml", "org.apache.pivot.tutorials.stocktracker", "TestCodeGenerator1" },
                     { "detail_pane.bxml", "org.apache.pivot.tutorials.stocktracker", "TestCodeGenerator2" },
                     //{ "custom_table_view.bxml", "org.apache.pivot.tutorials.tableviews", "TestCodeGenerator" },
                     //{ "alerts.bxml", "org.apache.pivot.tutorials", "TestCodeGenerator" },

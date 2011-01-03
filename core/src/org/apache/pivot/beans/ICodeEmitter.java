@@ -19,19 +19,20 @@ public interface ICodeEmitter {
     void code_new_root(final Class<?> type);
 
     void code_new(String element_type, String name, Object parent_value, Object element_value);
-
+    
+    void code_decl_namespace();
+    
     void code_set_attr(Object obj, String name, Class<?> propertyClass, Object value);
 
     void code_static_set_attr(Method setterMethod, Object object, Object value);
 
     void code_bind(Field field, Object object, Object value);
 
-    void code_block_end(String name, String elementType);
+    void code_block_end(String name, String elementType, boolean endOfInclude);
 
     void code_comment(String name, String elementType);
 
     void code_node_id(String name);
-    //void code_get_node(String name);
 
     void register_reference(String name, Object value);
 
@@ -41,8 +42,6 @@ public interface ICodeEmitter {
     void inc();
 
     void dec();
-
-    int call_depth();
 
     void flush(); // ???
 }
