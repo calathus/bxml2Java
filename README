@@ -22,25 +22,21 @@ Compared to the previous approach, it is more consise, and does not use any vari
 ----
 Installation:
 
-This is desigened as an extension of the current Apache Pivot source code line.
+This is designed as an extension of the current Apache Pivot source code line.
 The current project has minimal files. 
-In order to build this tool, copy the folder into the latest pivot folder created by chcking out by svn.
+In order to build this tool, copy the folder into the latest pivot folder created by checking out by svn.
 (this will override BXMLSerializer.java, so you may need to copy the original before this)
 
 ---
 Bugs:
-This is not completed version. But the framwork would be sound.
-If we run test program in test directory generating Java files from all bxml files under the tutorials folder, 
-it will show few files which fails to compile.
-
+This is not completed version. But the framework would be sound.
 Some of the problem is related to final classes in the Pivot class. 
 It fails because this generaes anonymous class for the final classes.
 So it is necessary to modify the original Pivot code to avoid this problem(change final to none final).
 (TreeVire.Columns, a few more classes)
 
 The main test program I used is the StackTrader.
-This opens the window when we run, but detail window content is not shown.
-Something is wrong..
+This sample generated code is now working.(I fixed a few issues) the new sample code is attached in this file.
 
 
 ---
@@ -50,7 +46,7 @@ Use eclipse to build and run this tool.
 
 You can run BXML2JavaConverterTest.java.
 this will convert all bxml files under tutorial folder, and generate java source files in the same folder.
-The generated Java file name starts with "_". so it is easy to distingish generated file from others.
+The generated Java file name starts with "_". so it is easy to distinguish generated file from others.
 
 ----
 
@@ -201,14 +197,11 @@ detail_pane.bxml
 =======================================
 first one will include the seconde bxml file.
 
-follwoig is the converted Java codes:
+following Java codes are converted from stock_tracker_window.bxml:
 
 package org.apache.pivot.tutorials.stocktracker;
 
-import java.io.IOException;
 import java.net.*;
-
-import org.apache.pivot.util.Resources;
 import org.apache.pivot.wtk.converter.CodeEmitterRuntime;
 import org.apache.pivot.wtk.*;
 import org.apache.pivot.wtk.content.*;
@@ -218,20 +211,21 @@ import org.apache.pivot.wtk.media.*;
 import org.apache.pivot.wtk.skin.*;
 import org.apache.pivot.wtk.text.*;
 import org.apache.pivot.wtk.validation.*;
-import org.apache.pivot.beans.Bindable;
 import org.apache.pivot.collections.adapter.*;
 import org.apache.pivot.collections.concurrent.*;
 import org.apache.pivot.collections.immutable.*;
 import org.apache.pivot.collections.*;
+import org.apache.pivot.util.Resources;
+import org.apache.pivot.beans.Bindable;
 
-public class TestCodeGenerator implements Application {
+public class TestCodeGenerator1 implements Application {
     private Window window = null;
 
     @Override
     public void startup(Display display, Map<String, String> properties) throws Exception {
         //BXMLSerializer bxmlSerializer = new BXMLSerializer();
         //window = (Window)bxmlSerializer.readObject(getClass().getResource("stock_tracker_window.bxml"));
-        final Object obj = createROOT();
+        final Object obj = create();
         if (obj instanceof Window) {;
             window = (Window)obj;
         } else if (obj instanceof Component) {
@@ -262,28 +256,14 @@ public class TestCodeGenerator implements Application {
     }
 
     public static void main(String[] args) {
-        DesktopApplicationContext.main(TestCodeGenerator.class, args);
+        DesktopApplicationContext.main(TestCodeGenerator1.class, args);
     }
-    
-	public Object createROOT() throws IOException {
-		ROOT root = new ROOT();
-	    Map<String, Object> namespace = new HashMap<String, Object>();
-	    URL location = null;
-	    Resources resources = null;
 
-		// Bind the root to the namespace
-		if (root instanceof Bindable) {
-			
-			Bindable bindable = (Bindable) root;
-			bindable.initialize(namespace, location, resources);
-		}
-		return root;
-	}
-
-    static class ROOT extends StockTrackerWindow {{
-        try {
+    static StockTrackerWindow create() throws Exception {
+        return new StockTrackerWindow() {{
             setTitle("Pivot Stock Tracker");
             setMaximized(true);
+            final Map<String, Object> namespace = new HashMap<String, Object>();
             setContent(new TablePane() {{
                 setStyles("{padding:8, horizontalSpacing:6, verticalSpacing:6}");
                 // columns(): READ_ONLY_PROPERTY
@@ -309,8 +289,7 @@ public class TestCodeGenerator implements Application {
                                 setVerticalScrollBarPolicy(ScrollPane.ScrollBarPolicy.FILL_TO_CAPACITY);
                                 setView(new StackPane() {{
                                     add(new TableView() {{
-                                        //CodeEmitterRuntime.register("stocksTableView", this);
-                                        ROOT.this.setStocksTableView(this);
+                                        namespace.put("stocksTableView", this);
                                         setSelectMode(TableView.SelectMode.MULTI);
                                         setStyles("{showHorizontalGridLines:false}");
                                         // columns(): READ_ONLY_PROPERTY
@@ -343,8 +322,7 @@ public class TestCodeGenerator implements Application {
                                 }}); // INSTANCE, name: <StackPane>
                                 // columnHeader(): WRITABLE_PROPERTY
                                 setColumnHeader(new TableViewHeader() {{
-                                	//setTableView((TableView)CodeEmitterRuntime.getNodeValue("stocksTableView"));
-                                    setTableView(ROOT.this.getStocksTableView()); //[nn]
+                                    setTableView((TableView)namespace.get("stocksTableView"));
                                     setSortMode(TableViewHeader.SortMode.SINGLE_COLUMN);
                                 }}); // INSTANCE, name: <TableViewHeader>
                             }}); // INSTANCE, name: <ScrollPane>
@@ -352,12 +330,11 @@ public class TestCodeGenerator implements Application {
                         // right(): WRITABLE_PROPERTY
                         setRight(new Border() {{
                             setStyles("{padding:6, color:10}");
-                                add(new BoxPane() {{
-                                    //CodeEmitterRuntime.register("detailPane", this);
-                                    ROOT.this.setDetailPane(this); //[nn]
-                                    final BoxPane boxPane = this; 
+                                setContent(new BoxPane() {{
+                                    namespace.put("detailPane", this);
                                     setOrientation(Orientation.VERTICAL);
                                     setStyles("{fill:true}");
+                                    final Map<String, Object> namespace = new HashMap<String, Object>();
                                     add(new Label() {{
                                         setTextKey("companyName");
                                         setStyles("{font:{size:12, bold:true}}");
@@ -367,54 +344,52 @@ public class TestCodeGenerator implements Application {
                                     add(new Form() {{
                                         setStyles("{padding:0, fill:true, showFlagIcons:false, showFlagHighlight:false,         leftAlignLabels:true}");
                                         getSections().add(new Form.Section() {{
-                                        	
                                             final ValueMapping valueMapping_0 = (new ValueMapping() {{
-                                                    CodeEmitterRuntime.register("valueMapping", this);
+                                                    namespace.put("valueMapping", this);
                                                 }}); // INSTANCE, name: <stocktracker:ValueMapping>
                                             final ChangeMapping changeMapping_1 = (new ChangeMapping() {{
-                                                    CodeEmitterRuntime.register("changeMapping", this);
+                                                    namespace.put("changeMapping", this);
                                                 }}); // INSTANCE, name: <stocktracker:ChangeMapping>
                                             final VolumeMapping volumeMapping_2 = (new VolumeMapping() {{
-                                                    CodeEmitterRuntime.register("volumeMapping", this);
+                                                    namespace.put("volumeMapping", this);
                                                 }}); // INSTANCE, name: <stocktracker:VolumeMapping>
-                                                
-                                        	add(new Label() {{
-                                                CodeEmitterRuntime.register("valueLabel", this);
+                                            add(new Label() {{
+                                                namespace.put("valueLabel", this);
                                                 setTextKey("value");
                                                 setTextBindMapping(valueMapping_0);
                                                 setStyles("{horizontalAlignment:'right'}");
                                                 Form.setLabel(this, "Value");
                                             }}); // INSTANCE, name: <Label>
                                             add(new Label() {{
-                                                CodeEmitterRuntime.register("changeLabel", this);
+                                                namespace.put("changeLabel", this);
                                                 setTextKey("change");
                                                 setTextBindMapping(changeMapping_1);
                                                 setStyles("{horizontalAlignment:'right'}");
                                                 Form.setLabel(this, "Change");
                                             }}); // INSTANCE, name: <Label>
                                             add(new Label() {{
-                                                CodeEmitterRuntime.register("openingValueLabel", this);
+                                                namespace.put("openingValueLabel", this);
                                                 setTextKey("openingValue");
                                                 setTextBindMapping(valueMapping_0);
                                                 setStyles("{horizontalAlignment:'right'}");
                                                 Form.setLabel(this, "Open");
                                             }}); // INSTANCE, name: <Label>
                                             add(new Label() {{
-                                                CodeEmitterRuntime.register("highValueLabel", this);
+                                                namespace.put("highValueLabel", this);
                                                 setTextKey("highValue");
                                                 setTextBindMapping(valueMapping_0);
                                                 setStyles("{horizontalAlignment:'right'}");
                                                 Form.setLabel(this, "High");
                                             }}); // INSTANCE, name: <Label>
                                             add(new Label() {{
-                                                CodeEmitterRuntime.register("lowValueLabel", this);
+                                                namespace.put("lowValueLabel", this);
                                                 setTextKey("lowValue");
                                                 setTextBindMapping(valueMapping_0);
                                                 setStyles("{horizontalAlignment:'right'}");
                                                 Form.setLabel(this, "Low");
                                             }}); // INSTANCE, name: <Label>
                                             add(new Label() {{
-                                                CodeEmitterRuntime.register("volumeLabel", this);
+                                                namespace.put("volumeLabel", this);
                                                 setTextKey("volume");
                                                 setTextBindMapping(volumeMapping_2);
                                                 setStyles("{horizontalAlignment:'right'}");
@@ -422,6 +397,7 @@ public class TestCodeGenerator implements Application {
                                             }}); // INSTANCE, name: <Label>
                                         }}); // INSTANCE, name: <Form.Section>
                                     }}); // INSTANCE, name: <Form>
+                                    CodeEmitterRuntime.initialize(this, namespace);
                                 }}); // INSTANCE, name: <BoxPane>
                         }}); // INSTANCE, name: <Border>
                     }}); // INSTANCE, name: <SplitPane>
@@ -435,14 +411,12 @@ public class TestCodeGenerator implements Application {
                             setStyles("{font:{bold:true}}");
                         }}); // INSTANCE, name: <Label>
                         add(new TextInput() {{
-                            //CodeEmitterRuntime.register("symbolTextInput", this);
-                            ROOT.this.setSymbolTextInput(this); //[nn]
+                            namespace.put("symbolTextInput", this);
                             setTextSize(10);
                             setMaximumLength(8);
                         }}); // INSTANCE, name: <TextInput>
                         add(new LinkButton() {{
-                            //CodeEmitterRuntime.register("addSymbolButton", this);
-                            ROOT.this.setAddSymbolButton(this); //[nn]
+                            namespace.put("addSymbolButton", this);
                             setEnabled(false);
                             setTooltipText("Add symbol");
                             setButtonData(new ButtonData() {{
@@ -450,8 +424,7 @@ public class TestCodeGenerator implements Application {
                             }}); // INSTANCE, name: <content:ButtonData>
                         }}); // INSTANCE, name: <LinkButton>
                         add(new LinkButton() {{
-                            //CodeEmitterRuntime.register("removeSymbolsButton", this);
-                            ROOT.this.setRemoveSymbolsButton(this); //[nn]
+                            namespace.put("removeSymbolsButton", this);
                             setEnabled(false);
                             setTooltipText("Remove selected symbols");
                             setButtonData(new ButtonData() {{
@@ -476,8 +449,7 @@ public class TestCodeGenerator implements Application {
                                     setText("Last Update");
                                 }}); // INSTANCE, name: <Label>
                                 add(new Label() {{
-                                    //CodeEmitterRuntime.register("lastUpdateLabel", this);
-                                    ROOT.this.setLastUpdateLabel(this); //[nn]
+                                    namespace.put("lastUpdateLabel", this);
                                 }}); // INSTANCE, name: <Label>
                             }}); // INSTANCE, name: <BoxPane>
                             add(new BoxPane() {{
@@ -486,8 +458,7 @@ public class TestCodeGenerator implements Application {
                                     setText("Data provided by");
                                 }}); // INSTANCE, name: <Label>
                                 add(new LinkButton() {{
-                                    //CodeEmitterRuntime.register("yahooFinanceButton", this);
-                                    ROOT.this.setYahooFinanceButton(this); //[nn]
+                                    namespace.put("yahooFinanceButton", this);
                                     setButtonData("Yahoo! Finance");
                                 }}); // INSTANCE, name: <LinkButton>
                             }}); // INSTANCE, name: <BoxPane>
@@ -495,20 +466,16 @@ public class TestCodeGenerator implements Application {
                     }}); // INSTANCE, name: <TablePane>
                 }}); // INSTANCE, name: <TablePane.Row>
             }}); // INSTANCE, name: <TablePane>
-            /*
-            CodeEmitterRuntime.bind(ROOT.this, "stocksTableView");
-            CodeEmitterRuntime.bind(ROOT.this, "symbolTextInput");
-            CodeEmitterRuntime.bind(ROOT.this, "addSymbolButton");
-            CodeEmitterRuntime.bind(ROOT.this, "removeSymbolsButton");
-            CodeEmitterRuntime.bind(ROOT.this, "detailPane");
-            CodeEmitterRuntime.bind(ROOT.this, "lastUpdateLabel");
-            CodeEmitterRuntime.bind(ROOT.this, "yahooFinanceButton");
-            */
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }}
+            CodeEmitterRuntime.bind(this, namespace, "stocksTableView");
+            CodeEmitterRuntime.bind(this, namespace, "symbolTextInput");
+            CodeEmitterRuntime.bind(this, namespace, "addSymbolButton");
+            CodeEmitterRuntime.bind(this, namespace, "removeSymbolsButton");
+            CodeEmitterRuntime.bind(this, namespace, "detailPane");
+            CodeEmitterRuntime.bind(this, namespace, "lastUpdateLabel");
+            CodeEmitterRuntime.bind(this, namespace, "yahooFinanceButton");
+            CodeEmitterRuntime.initialize(this, namespace);
+        }};
+    }
 }
 
 
@@ -516,6 +483,6 @@ public class TestCodeGenerator implements Application {
 
 
 calathus
-12/29/2010
+1/2/2011
 
 
