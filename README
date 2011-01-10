@@ -261,9 +261,9 @@ public class TestCodeGenerator1 implements Application {
 
     static StockTrackerWindow create() throws Exception {
         return new StockTrackerWindow() {{
+            final Map<String, Object> namespace = new HashMap<String, Object>();
             setTitle("Pivot Stock Tracker");
             setMaximized(true);
-            final Map<String, Object> namespace = new HashMap<String, Object>();
             setContent(new TablePane() {{
                 setStyles("{padding:8, horizontalSpacing:6, verticalSpacing:6}");
                 // columns(): READ_ONLY_PROPERTY
@@ -334,7 +334,6 @@ public class TestCodeGenerator1 implements Application {
                                     namespace.put("detailPane", this);
                                     setOrientation(Orientation.VERTICAL);
                                     setStyles("{fill:true}");
-                                    final Map<String, Object> namespace = new HashMap<String, Object>();
                                     add(new Label() {{
                                         setTextKey("companyName");
                                         setStyles("{font:{size:12, bold:true}}");
