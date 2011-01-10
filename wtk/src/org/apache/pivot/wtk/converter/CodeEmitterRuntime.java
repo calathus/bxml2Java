@@ -8,6 +8,7 @@ package org.apache.pivot.wtk.converter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URL;
+import java.util.Locale;
 
 import org.apache.pivot.beans.BXML;
 import org.apache.pivot.beans.BindException;
@@ -19,12 +20,20 @@ public class CodeEmitterRuntime {
 
     public static void initialize(Object obj, Map<String, Object> namespace) {
     	if (obj instanceof Bindable) {
-    		Bindable bindable = (Bindable) obj;
-            URL location = null; // file:/share/workspace/pivot/tutorials/bin/org/apache/pivot/tutorials/stocktracker/stock_tracker_window.bxml
-            Resources resources = null;
-
-            // Bind the root to the namespace
-            bindable.initialize(namespace, location, resources);
+    		try {
+		    Bindable bindable = (Bindable) obj;
+	            URL location = null; // file:/share/workspace/pivot/tutorials/bin/org/apache/pivot/tutorials/stocktracker/stock_tracker_window.bxml
+	            Resources resources = null;
+		    /*
+	            final String language = "ja";
+	            final Locale locale = (language == null) ? Locale.getDefault() : new Locale(language);
+	            final Resources resources = new Resources(CodeEmitterRuntime.class.getName(), locale);
+		    */
+	            // Bind the root to the namespace
+	            bindable.initialize(namespace, location, resources);
+    		} catch (Exception e) {
+    			throw new RuntimeException(e);
+    		}
     	}
     }
     

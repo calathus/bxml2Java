@@ -10,7 +10,8 @@ import org.junit.Test;
 
 public class BXML2JavaConverterTest {
 
-    final static String srcDir = "/share/workspace/pivot/tutorials/src";
+    final static String demosSrcDir = "/share/workspace/pivot/demos/src";
+    final static String tutorialSrcDir = "/share/workspace/pivot/tutorials/src";
     final static String xfiles[] = {
         /*
             "json_table_view.bxml", // json file is not supported ...
@@ -26,8 +27,9 @@ public class BXML2JavaConverterTest {
             */
     };
 
-    public static String getPackage(File file) {
+    public static String getPackage(String srcDir, File file) {
         String fileName = file.getParent().toString();
+        //System.out.println("fileName: "+fileName+", srcDir: "+srcDir);
         if (fileName.startsWith(srcDir)) {
             return fileName.substring(srcDir.length()+1).replace('/', '.');
         }
@@ -46,11 +48,11 @@ public class BXML2JavaConverterTest {
     static List<File> testedFiles = new ArrayList<File>();
     static List<ErrorInfo> errorInfos = new ArrayList<ErrorInfo>();
 
-    public static void enumerateBXMFile(BXML2JavaConverter b2j, File folder) {
+    public static void enumerateBXMFile(BXML2JavaConverter b2j, String srcDir) {
         testedFiles.clear();
         errorInfos.clear();
 
-        enumerateBXMFile0(b2j, folder);
+        enumerateBXMFile0(b2j, srcDir, new File(srcDir));
 
         System.out.println("\n==== success ====");
         for (File file: testedFiles) {
@@ -66,7 +68,8 @@ public class BXML2JavaConverterTest {
         System.out.println("total failed file number: "+errorInfos.size()+"/"+testedFiles.size());
 
     }
-    static void enumerateBXMFile0(BXML2JavaConverter b2j, File folder) {
+    static void enumerateBXMFile0(BXML2JavaConverter b2j, String srcDir, File folder) {
+    	//File folder = new File(srcDir);
         for (File file : folder.listFiles()) {
             if (file.isFile()) {
                 String bxmlFileName = file.getName();
@@ -74,7 +77,7 @@ public class BXML2JavaConverterTest {
                     continue;
                 }
                 if (bxmlFileName.endsWith(".bxml")) {
-                    String packageName = getPackage(file);
+                    String packageName = getPackage(srcDir, file);
                     String className = "_"+BXML2JavaConverter.toJavaClassName(bxmlFileName);// assume no classname in pivot start with _.
                     System.out.println(file + ", "+packageName+", "+className);
                     try {
@@ -90,8 +93,21 @@ public class BXML2JavaConverterTest {
                     }
                 }
             } else if (file.isDirectory()) {
-                enumerateBXMFile0(b2j, file);
+                enumerateBXMFile0(b2j, srcDir, file);
             }
+        }
+    }
+
+    @Test
+    public void allDemosBXMLTest() {
+        try {
+            final BXML2JavaConverter b2j = new BXML2JavaConverter();
+
+            enumerateBXMFile(b2j, demosSrcDir);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("failed: " + e.getMessage());
         }
     }
 
@@ -100,7 +116,7 @@ public class BXML2JavaConverterTest {
         try {
             final BXML2JavaConverter b2j = new BXML2JavaConverter();
 
-            enumerateBXMFile(b2j, new File(srcDir));
+            enumerateBXMFile(b2j, tutorialSrcDir);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -108,16 +124,16 @@ public class BXML2JavaConverterTest {
         }
     }
 
-    void translate(BXML2JavaConverter b2j, String simpleBXMLFileName, String packageName, String className) {
+    void translate(BXML2JavaConverter b2j, String srcDir, String simpleBXMLFileName, String packageName, String className) {
         final String packagePath = packageName.replace('.', '/');
         final String bxmlFileName = srcDir+"/"+packagePath+"/"+simpleBXMLFileName;
         b2j.convert(bxmlFileName, packageName, className, null, false);
     }
     void translate(BXML2JavaConverter b2j, String[] args) {
-        translate(b2j, args[0], args[1], args[2]);
+        translate(b2j, args[0], args[1], args[2], args[3]);
     }
 
-    @Test
+//    @Test
     public void generateTest() {
         try {
             final BXML2JavaConverter b2j = new BXML2JavaConverter();
